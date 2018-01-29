@@ -1,10 +1,10 @@
-﻿public class Tile {
+﻿public class Tile : Point {
     
-    private int x;
-    private int y;
-        
-    public Tile(int x, int y) {
-        this.x = x;
-        this.y = y;
+    private readonly bool _allowsPiece = true;
+    
+    public Tile(int x, int y) : base(x, y) {}
+    
+    public bool AllowsPiece {
+        get { return _allowsPiece; }
     }
 }
