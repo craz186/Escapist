@@ -26,7 +26,7 @@ public abstract class Piece : Point {
 //        return validMoves;
 //    }
 
-    protected abstract Move[] GetValidMoves();
+    public abstract Move[] GetValidMoves();
 
     protected internal void TakeMove(Move move) {
         var direction = move.GetDirection();
