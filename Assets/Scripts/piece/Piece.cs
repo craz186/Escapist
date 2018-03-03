@@ -4,28 +4,50 @@ using piece;
 
 public abstract class Piece : Point {
     private PieceType _pieceType;
-    private readonly int _movementDistance;
 
-    protected Piece(int x, int y, PieceType pieceType, int movementDistance) : base(x, y) {
-        this._pieceType = pieceType;
-        this._movementDistance = movementDistance;
+    protected Piece(int x, int y, PieceType pieceType) : base(x, y) {
+        _pieceType = pieceType;
     }
 
-    protected internal IEnumerable<Point> GetValidMoves() {
-        var validMoves = new List<Point>();
-        for (var x = -_movementDistance; x < _movementDistance; x++) {
-            for (var y = -_movementDistance; y < _movementDistance; y++) {
-                var currentX = X + x;
-                var currentY = Y + y;
-                
-                if (IsValidMove(currentX, currentY)) {
-                    validMoves.Add(new Point(currentX, currentY));
-                }
-            }
+//  TODO revisit could be useful
+//     protected internal IEnumerable<Point> GetValidMoves() {
+//        var validMoves = new List<Point>();
+//        for (var x = -_movementDistance; x < _movementDistance; x++) {
+//            for (var y = -_movementDistance; y < _movementDistance; y++) {
+//                var currentX = X + x;
+//                var currentY = Y + y;
+//                
+//                if (IsValidMove(currentX, currentY)) {
+//                    validMoves.Add(new Point(currentX, currentY));
+//                }
+//            }
+//        }
+//
+//        return validMoves;
+//    }
+
+    protected abstract Move[] GetValidMoves();
+
+    protected internal void TakeMove(Move move) {
+        var direction = move.GetDirection();
+        var distance = move.GetDistance();
+
+        switch (direction) {
+            case Direction.Up:
+                Y -= distance;
+                break;
+            case Direction.Down:
+                Y += distance;    
+                break;
+            case Direction.Right:
+                X += distance;
+                break;
+            case Direction.Left:
+                X -= distance;
+                break;
         }
-
-        return validMoves;
+        
     }
-
-    protected abstract bool IsValidMove(int x, int y);
+//
+//    protected abstract bool IsValidMove(int x, int y);
 }
