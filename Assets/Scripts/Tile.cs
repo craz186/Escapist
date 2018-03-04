@@ -7,4 +7,8 @@
     public bool AllowsPiece {
         get { return _allowsPiece; }
     }
+
+    public override string ToString() {
+        return "(" + X + "," + Y + ")";
+    }
 }

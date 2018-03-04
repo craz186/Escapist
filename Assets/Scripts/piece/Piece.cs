@@ -48,6 +48,10 @@ public abstract class Piece : Point {
         }
         
     }
+
+    public override string ToString() {
+        return "(" + X + "," + Y + ")";
+    }
 //
 //    protected abstract bool IsValidMove(int x, int y);
 }
