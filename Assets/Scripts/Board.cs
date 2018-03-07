@@ -46,7 +46,7 @@ public class Board{
 				var tile = new Tile(x, y);
 				tiles.SetValue(tile, x, y);
 				if (character.StartsWith("U")) {
-					userPiece = new Dog(x, y);
+					userPiece = new Dog(x, y) {IsUserPiece = true};
 				} else if (character.Equals("D")) {
 					aiPieces.Add(new Dog(x, y));
 		  		}
@@ -62,8 +62,8 @@ public class Board{
 		foreach (var aiPiece in _aiManager.GetAiPieces()) {
 			Console.WriteLine("AIPiece :" + aiPiece);
 		}
-		for(var x = 0; x < _xLength; x++) {
-			for(var y = 0; y < _yLength; y++) {
+		for(var y = 0; y < _xLength; y++) {
+			for(var x = 0; x < _yLength; x++) {
 				var tile = _tiles.GetValue(x,y);
 				Console.Write(tile + " ");
 			}	
@@ -71,4 +71,78 @@ public class Board{
 		}
 		
 	}
+
+	public void MakeAiMove() {
+		_aiManager.MoveAllAiPieces(this, _userPiece);
+	}
+
+	// We will cycle through all coordinates of the move and stop the move early if a piece is found
+	public MoveResult MovePiece(Piece piece, Move move, bool isFakeMove) {
+		piece.TakeMove(move);
+		var isValidMove = IsValidPosition(piece);
+		piece.TakeMove(move.Reverse());
+
+		if(!isValidMove) {
+			return MoveResult.InvalidMove;
+		}
+
+		var filteredMove = move;
+		var moveResult = MoveResult.ValidMove;
+		var moveCoordinates = piece.GetAllMoveCoordinatesForMove(move);
+		for(var i = 0; i < moveCoordinates.Length; i++) {
+			var point = (Point) moveCoordinates.GetValue(i);
+			var pieceToBeTaken = CheckPieceExists(point.X, point.Y);
+			if (pieceToBeTaken == null) {
+				continue;
+			}
+			if (pieceToBeTaken.IsUserPiece) {
+				// Game over...
+				if (!isFakeMove) {
+					_userPiece = new Dog(-20, -20) {IsUserPiece = true};
+				}
+				filteredMove = new Move(move.GetDirection(),move.GetDistance());
+				moveResult = MoveResult.UserPieceTaken;
+			}
+			else {
+				// TODO need to check that the piece not getting taken is actually the User piece
+				if (!isFakeMove) {
+					_aiManager.RemovePiece(pieceToBeTaken);
+				}
+				filteredMove = new Move(move.GetDirection(), move.GetDistance());
+				moveResult = MoveResult.AiPieceTaken;
+			}
+		}
+
+		if (!isFakeMove) {
+			piece.TakeMove(filteredMove);
+		}
+
+		return moveResult;
+	}
+
+	// TODO Can add Tile checks in here later
+	private bool IsValidPosition(Piece piece) {
+		return piece.X > -1 && piece.X < _xLength && piece.Y > -1 && piece.Y < _yLength;
+	}
+
+	private Piece CheckPieceExists(int x, int y) {
+		if (_userPiece.X == x && _userPiece.Y == y) {
+			return _userPiece;
+		}
+
+		foreach (var aiPiece in _aiManager.GetAiPieces()) {
+			if (aiPiece.X == x && aiPiece.Y == y) {
+				return aiPiece;
+			}
+		}
+
+		return null;
+	}
+}
+
+public enum MoveResult {
+	AiPieceTaken,
+	UserPieceTaken,
+	InvalidMove,
+	ValidMove
 }

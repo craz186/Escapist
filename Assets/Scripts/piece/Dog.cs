@@ -22,7 +22,7 @@
         
         public Dog(int x, int y) : base(x, y, PieceType.Dog) {}
 
-        public override Move[] GetValidMoves() {
+        public override Move[] GetMoves() {
             return _validMoves;
         }
     }

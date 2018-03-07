@@ -5,54 +5,70 @@ using UnityEngine;
 
 public class AIManager {
     // The current enemy pieces
-    private readonly Piece[,] _aiPieces;
+    private readonly List<Piece> _aiPieces;
 
-    private readonly Piece _opponent;
+    private const int MaxSearchDepth = 8;
 
-    // current board
-    private Board _board;
-
-    private const int MaxSearchDepth = 4;
-
-    public AIManager(Piece[,] aiPieces, Piece piece, Board board) {
+    public AIManager(List<Piece> aiPieces) {
         _aiPieces = aiPieces;
-        _board = board;
-        _opponent = piece;
     }
 
-    void MoveAllAIPieces() {
+    public void MoveAllAiPieces(Board board, Piece opponent) {
         // First get our pieces
         // Then for each piece make every possible move.
         // Score each move and save our best move. 
+        var boardCopy = board;
         foreach (var aiPiece in _aiPieces) {
             // needs to recursively call the next part in a function
-            var bestAvailableMove = MiniMax(aiPiece, _opponent, 0, true);
-            aiPiece.TakeMove(bestAvailableMove);
+            var bestAvailableMove = MiniMax(boardCopy, aiPiece, opponent, 0);
+            board.MovePiece(aiPiece, bestAvailableMove, false);
         }
     }
 
-    private Move MiniMax(Piece currentPiece, Piece opponentPiece, int currentDepth, bool takeMax) {
+    private Move MiniMax(Board board, Piece currentPiece, Piece opponentPiece, int currentDepth) {
         Move bestMove = null;
-        foreach (var move in currentPiece.GetValidMoves()) {
+        foreach (var move in currentPiece.GetMoves()) {
             var previousLocation = new Point(currentPiece.X, currentPiece.Y);
-            currentPiece.TakeMove(move);
-            var afterLocation = new Point(currentPiece.X, currentPiece.Y);
-            int currentScore;
+            var moveResult = board.MovePiece(currentPiece, move, true);
+            var currentScore = currentPiece.IsUserPiece ? 100000 : -100000;
+            switch (moveResult) {
+                case MoveResult.InvalidMove:
+                    continue;
+                // This case can only be triggered by an AI
+                case MoveResult.UserPieceTaken:
+                    move.Score = -currentScore;
+                    bestMove = move;
+                    continue;
+                // This case could be triggered by an AI
+                case MoveResult.AiPieceTaken:
+                    if (currentPiece.IsUserPiece) {
+                        move.Score = -currentScore;
+                        bestMove = move;
+                    }
+                    continue;
+                case MoveResult.ValidMove:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
             
             if (currentDepth < MaxSearchDepth) {
                 // If we have not reached our MaxSearchDepth then keep branching
-                currentScore = MiniMax(opponentPiece, currentPiece, currentDepth + 1, !takeMax).Score;
-            }
-            else {
+                var currentMove= MiniMax(board, opponentPiece, currentPiece, currentDepth + 1);
+                if (currentMove != null) {
+                    currentScore = currentMove.Score;
+                }
+            } else {
                 // We only want to evaluate leaf nodes 
+                currentPiece.TakeMove(move);
+                var afterLocation = new Point(currentPiece.X, currentPiece.Y);
+                currentPiece.TakeMove(move.Reverse());
                 currentScore = ScoreMove(previousLocation, afterLocation, opponentPiece);
             }
 
-            currentPiece.TakeMove(move.Reverse());
-            if (bestMove == null || (takeMax ? currentScore > bestMove.Score : currentScore < bestMove.Score)) {
+            if (bestMove == null || (currentPiece.IsUserPiece ? currentScore < bestMove.Score : currentScore > bestMove.Score)) {
                 move.Score = currentScore;
                 bestMove = move;
-                
             }
         }
 
@@ -71,7 +87,7 @@ public class AIManager {
 
         // calculate distance from before point to opponent
         // calculate distance from after point to opponent
-        // score is negative for further away and possitive for closer.
+        // score is negative for further away and positive for closer.
         // score is best if distance is 0.
 
         var beforeDistance = CalculateDistanceBetweenTwoPoints(beforePoint, opponentPiece); // 8
@@ -80,10 +96,9 @@ public class AIManager {
 
         if (afterDistance == 0) {
             score = 100;
-        } else if (afterDistance < beforeDistance) {
-            score = 10;
-        } else {
-            score = -10;
+        }
+        else {
+            score = beforeDistance - afterDistance;
         }
         
         return score;
@@ -91,5 +106,13 @@ public class AIManager {
 
     private static int CalculateDistanceBetweenTwoPoints(Point first, Point second) {
         return (int) (Math.Pow(second.X - first.X, 2) + Math.Pow(second.Y - first.Y, 2));
+    }
+
+    public List<Piece> GetAiPieces() {
+        return _aiPieces;
+    }
+
+    public void RemovePiece(Piece pieceToBeTaken) {
+        _aiPieces.Remove(pieceToBeTaken);
     }
 }
